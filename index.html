@@ -226,6 +226,19 @@
     color:var(--ink-soft);font-weight:800;margin-bottom:3px;
   }
   .bq .sep{opacity:.45;margin:0 6px}
+  .optin-group{margin:26px 0 4px}
+  .optin{
+    display:flex;gap:13px;align-items:flex-start;cursor:pointer;
+    border:1.5px solid var(--line);border-radius:var(--radius);
+    padding:15px 17px;margin-bottom:10px;background:var(--ground);
+  }
+  .optin:hover{border-color:var(--ink-soft)}
+  .optin input{
+    width:19px;height:19px;margin-top:1px;flex-shrink:0;
+    accent-color:var(--brand);cursor:pointer;
+  }
+  .optin span{font-size:14.5px;line-height:1.5;color:var(--ink-soft)}
+  .optin b{color:var(--ink);font-weight:700;display:block;margin-bottom:2px}
   .field-opt{font-weight:400;color:var(--ink-soft);font-size:12.5px;margin-left:6px}
   .unanswered{
     display:none;font-size:14.5px;color:var(--ink-soft);
@@ -295,15 +308,27 @@
 <section id="gate" class="screen">
   <div class="wrap">
     <div class="eyebrow">Assessment complete</div>
-    <h2>Where should we send the research?</h2>
+    <h2>Your answers are in. Here's the trade.</h2>
     <div class="gate-card">
-      <p class="soft">Your profile appears on the next screen. The research behind it, our study of 987 consumers on why customers quietly leave, comes by email.</p>
+      <p class="soft">Tell us who you are and you get three things. Your Friction Management Profile on the next screen. A copy by email you can keep or send to a colleague. And the research these questions came from, our study of 987 consumers on why customers quietly leave.</p>
       <div class="field"><label for="f-name">Your name</label><input id="f-name" type="text" autocomplete="name"></div>
       <div class="field"><label for="f-email">Email</label><input id="f-email" type="email" autocomplete="email"></div>
-      <div class="field"><label for="f-company">Organization</label><input id="f-company" type="text" autocomplete="organization"></div>
+      <div class="field"><label for="f-company">Company or organization</label><input id="f-company" type="text" autocomplete="organization"></div>
       <div class="field"><label for="f-role">Role<span class="field-opt">optional</span></label><input id="f-role" type="text" autocomplete="organization-title"></div>
-      <button class="btn-primary" id="reveal-btn" onclick="revealResults()" disabled>Send the research and show my profile</button>
-      <p class="gate-fine">We'll email you the research and the occasional follow-up on what we're finding. Unsubscribe anytime. We don't sell or share your information. Ever.</p>
+
+      <div class="optin-group">
+        <label class="optin" for="f-optin-research">
+          <input type="checkbox" id="f-optin-research">
+          <span><b>Let me know when you have new research or findings to share.</b> We publish a few times a year. Nothing else.</span>
+        </label>
+        <label class="optin" for="f-optin-cert">
+          <input type="checkbox" id="f-optin-cert">
+          <span><b>Tell me more about certification and assessment options.</b> How Ridiculously Easy Certification works, and what measuring your own customers would involve.</span>
+        </label>
+      </div>
+
+      <button class="btn-primary" id="reveal-btn" onclick="revealResults()" disabled>Show my profile</button>
+      <p class="gate-fine">Unsubscribe anytime. We don't sell or share your information. Ever.</p>
     </div>
   </div>
 </section>
@@ -599,9 +624,15 @@ const SESSION = {
    under CAN-SPAM. EU/UK traffic needs a separate unchecked box for express
    consent under GDPR. Add before any international promotion. */
 const CONSENT_TEXT = {
-  purpose: "Where should we send the research? Your profile appears on the next screen. The research behind it, our study of 987 consumers on why customers quietly leave, comes by email.",
-  action: "Send the research and show my profile",
-  terms: "We'll email you the research and the occasional follow-up on what we're finding. Unsubscribe anytime. We don't sell or share your information. Ever."
+  /* Transactional. Three things they asked for, in exchange for identity.
+     Required fields are fine for a transaction in every jurisdiction. */
+  transactional: "Tell us who you are and you get three things. Your Friction Management Profile on the next screen. A copy by email you can keep or send to a colleague. And the research these questions came from, our study of 987 consumers on why customers quietly leave.",
+  action: "Show my profile",
+  /* Marketing. Two separate, unchecked, genuinely optional asks.
+     Neither gates the button. This is what makes the consent express
+     rather than bundled, which is what GDPR and CASL require. */
+  research: "Let me know when you have new research or findings to share. We publish a few times a year. Nothing else.",
+  certification: "Tell me more about certification and assessment options. How Ridiculously Easy Certification works, and what measuring your own customers would involve."
 };
 
 const eventLog = [];
@@ -882,10 +913,10 @@ function revealResults(){
       role: document.getElementById('f-role').value.trim() || null
     },
     consent: {
-      method: "submission",
-      marketingOptIn: true,
       capturedAt: new Date().toISOString(),
-      wording: CONSENT_TEXT
+      transactional: { method: "submission", wording: CONSENT_TEXT.transactional, action: CONSENT_TEXT.action },
+      researchOptIn: { granted: document.getElementById('f-optin-research').checked, wording: CONSENT_TEXT.research },
+      certificationOptIn: { granted: document.getElementById('f-optin-cert').checked, wording: CONSENT_TEXT.certification }
     },
     answers: answers.map((a,i)=>({
       q: i+1,
